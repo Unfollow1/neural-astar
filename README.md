@@ -1,6 +1,6 @@
 # Path Planning using Neural A\* Search (ICML 2021)
 
-This is the official repository for the following paper:
+This is a repository for the following paper:
 
 Ryo Yonetani*, Tatsunori Taniai*, Mohammadamin Barekatain, Mai Nishimura, Asako Kanezaki, "Path Planning using Neural A\* Search", ICML, 2021 [[paper]](https://arxiv.org/abs/2009.07476) [[project page]](https://omron-sinicx.github.io/neural-astar/)
 
@@ -8,82 +8,77 @@ Ryo Yonetani*, Tatsunori Taniai*, Mohammadamin Barekatain, Mai Nishimura, Asako 
 
 Neural A\* is a novel data-driven search-based planner that consists of a trainable encoder and a differentiable version of A\* search algorithm called differentiable A* module. Neural A\* learns from demonstrations to improve the trade-off between search optimality and efficiency in path planning and also to enable the planning directly on raw image inputs.
 
-| A\* search | Neural A\* search | Planning on raw image input | 
-|:--:|:--:|:--:|
-| ![astar](assets/astar.gif) | ![neural_astar](assets/neural_astar.gif)| ![warcraft](assets/warcraft.png) |
-
-
 ## Overview
-- This branch presents minimal working examples for training Neural A* to (1) solve shortest path problems and (2) perform planning directly on [WarCraft map images](https://edmond.mpdl.mpg.de/dataset.xhtml?persistentId=doi:10.17617/3.YJCQ5S).
-- For reproducing experiments in our ICML'21 paper, please refer to [icml2021](https://github.com/omron-sinicx/neural-astar/tree/icml2021) branch.
+- This branch provides the code to reproduce the experiments in our ICML paper.
+- For a minimal example to train and evaluate Neural A* on shortest path problems, please refer to [minimal](https://github.com/omron-sinicx/neural-astar/tree/minimal) branch.
 - For creating datasets used in our experiments, please visit [planning datasets](https://github.com/omron-sinicx/planning-datasets) repository.
 
 ## Getting started
-- Try Neural A* on Google Colab! [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/omron-sinicx/neural-astar/blob/minimal/notebooks/example.ipynb)
-- The code has been tested on Ubuntu >=18.04 as well as WSL2 (Ubuntu 20.04) on Windows 11, with python3 (>=3.8). Planning can be performed only on the CPU, and the use of GPUs is supported for training/evaluating Neural A\* models. We also provide Dockerfile and docker-compose.yaml to replicate our setup.
+- The code has been tested on Ubuntu 18.04.3 LTS.
+- Use `docker-compose.yml` and `docker/Dockerfile` to reproduce our environment.
 
-### Installation (venv)
-```sh
-$ git clone --recursive https://github.com/omron-sinicx/neural-astar
-$ python -m venv .venv
-$ source .venv/bin/activate
-(.venv) $ pip install .[dev]
-```
+### Training Neural A* and baseline models on MP/TiledMP/CSM datasets
 
-or with docker compose
+Download all the data from [planning datasets](https://github.com/omron-sinicx/planning-datasets) and place them in `scripts/data`
 
 ```sh
-$ docker compose build
-$ docker compose up -d neural-astar
-$ docker compose exec neural-astar bash
+data
+├── mpd
+│   ├── all_064_moore_c16.npz
+│   ├── alternating_gaps_032_moore_c8.npz
+│   ├── bugtrap_forest_032_moore_c8.npz
+│   ├── forest_032_moore_c8.npz
+│   ├── gaps_and_forest_032_moore_c8.npz
+│   ├── mazes_032_moore_c8.npz
+│   ├── multiple_bugtraps_032_moore_c8.npz
+│   ├── original
+│   ├── shifting_gaps_032_moore_c8.npz
+│   └── single_bugtrap_032_moore_c8.npz
+├── sdd
+│   ├── original
+│   └── s064_0.5_128_300
+└── street
+    ├── mixed_064_moore_c16.npz
+    └── original
 ```
 
-## Perform shortest path search with Neural A\* 
-See [`notebooks/example.ipnyb`](https://github.com/omron-sinicx/neural-astar/tree/minimal/notebooks/example.ipynb) for how it works.
-
-### Training
+Run all scripts from the `scripts` directory.
 ```sh
-(.venv) $ python scripts/train.py
+$ cd scripts
+$ sh 0_MP.sh | sh
+$ sh 1_TiledMP.sh | sh
+$ sh 2_CSM.sh | sh
 ```
 
-You can also visualize and save planning results as gif. 
+If you want to parallelize experiments, use [GNU Parallel](https://www.gnu.org/software/parallel/): 
+
 ```sh
-(.venv) $ python scripts/create_gif.py
+$ sh 0_MP.sh | parallel -j 2 --ungroup
 ```
 
+Once all the training sessions are done, check results with the following commands:
 
-## Perform planning on WarCraft data [2] with Neural A\* 
-
-
-### Preparation
-- Download `warcraft_maps.tar.gz` from [Blackbox Combinatorial Solvers page](https://edmond.mpdl.mpg.de/dataset.xhtml?persistentId=doi:10.17617/3.YJCQ5S). [2]
-- Extract the directory named `12x12` (smallest maps) and place it on the root of this project directory.
-
-### Training
 ```sh
-(.venv) $ python scripts/train_warcraft.py
+# show the opt, exp, and hmean scores
+$ python show_results.py
+# visualize some results and save them in `figures`
+$ python visualize_results.py
 ```
 
-Once training has been done, open [`notebooks/example_warcraft.ipnyb`](https://github.com/omron-sinicx/neural-astar/tree/minimal/notebooks/example_warcraft.ipynb) to see how it works.
+### Training Neural A* and baseline models on Stanford Drone Dataset
 
-## FAQs
+```sh
+$ sh 3_SDD.sh | sh
+```
 
-### Data format (c.f. https://github.com/omron-sinicx/neural-astar/issues/1#issuecomment-968063948)
+Once all the training sessions are done, check results with the following commands:
 
-The datafile `mazes_032_moore_c8.npz` was created using our data generation script in a separate repository https://github.com/omron-sinicx/planning-datasets.
-
-In the data, `arr_0` - `arr_3` are 800 training, `arr_4` - `arr_7` are 100 validation, and `arr_8` - `arr_11` are 100 test data, which contain the following information (see also https://github.com/omron-sinicx/planning-datasets/blob/68e182801fd8cbc4c25ccdc1b14b8dd99d9bbc73/generate_spp_instances.py#L50-L61):
-
-- `arr_0`, `arr_4`, `arr_8`: binary input maps
-- `arr_1`, `arr_5`, `arr_9`: one-hot goal maps
-- `arr_2`, `arr_6`, `arr_10`: optimal directions (among eight directions) to reach the goal
-- `arr_3`, `arr_7`, `arr_11`: shortest distances to the goal
-
-For each problem instance, the start location is generated randomly when `__getitem__` is called: https://github.com/omron-sinicx/neural-astar/blob/e6e626c4d159b0e4c58ee6ad33c7e03db33d72f4/neural_astar/utils/data.py#L114
-
-## Third-party implementations
-
-- [shreya-bhatt27/NeuralAstar-ported](https://github.com/shreya-bhatt27/NeuralAstar-ported): Pytorch Lightning implementation with some additional experiments. See also [their preprint](https://arxiv.org/abs/2208.04153).
+```sh
+# show the chamfer distance scores
+$ python show_results_sdd.py
+# visualize some results and save them in `figures`
+$ python visualize_results_sdd.py
+```
 
 ## Citation
 

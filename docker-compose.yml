@@ -2,16 +2,16 @@ version: "2.4"
 
 services:
   neural-astar:
-    image: omron-sinicx/neural-astar:minimal
+    image: omron-sinicx/neural-astar:icml2021
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
     runtime: nvidia
     container_name: ${USER}.neural-astar
     volumes:
       - ${PWD}:/workspace
     environment:
-      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0,1
     ports:
       - 8888
       - 6666
